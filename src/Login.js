@@ -7,9 +7,11 @@ const Login = ({ authHandler }) => {
   }
 
   return (
-    <button className="github" onClick={() => authenticate('github')}>
-      Sign in with Github
-    </button>
+    <div className="col-sm-12">
+      <button className="github-login btn btn-lg btn-primary" onClick={() => authenticate('github')}>
+        Sign in with Github
+      </button>
+    </div>
   )
 }
 
