@@ -7,6 +7,7 @@ import GithubbersList from './GithubbersList'
 import base from './base'
 
 class App extends Component {
+
   constructor() {
     super()
     this.state = {
@@ -16,49 +17,73 @@ class App extends Component {
     }
   }
 
+  componentWillMount() {
+    const uid = parseInt(localStorage.getItem('github-list-uid'), 10)
+    if (uid) {
+      this.setState({ uid }, () => this.syncGithubbers())
+    }
+  }
+
   authHandler = (err, authData) => {
     if (err) {
       console.log(err)
       return
     }
-    const uid = authData.user.uid
     const email = authData.user.email
-    this.setState({ uid })
-    this.fetchGithubbers()
-    .then(() => {
-      this.fetchUserData(email, uid)
+    this.fetchUserData(email)
+  }
+
+  fetchUserData = (email) => {
+    fetch(`https://api.github.com/search/users?q=${email}`)
+      .then(res => res.json())
+      .then(userData => {
+        const user = userData.items[0]
+        localStorage.setItem('github-list-uid', user.id)
+        this.setState({ 
+          user,
+          uid: user.id
+        }, () => this.syncGithubbers())
+      })
+  }
+
+  syncGithubbers = () => {
+    this.ref = base.syncState('githubbers', {
+      state: 'githubbers',
+      context: this,
+      asArray: true,
+      then: () => this.addUserToGithubbers()
     })
   }
 
-  fetchUserData = (email, uid) => {
-    fetch(`https://api.github.com/search/users?q=${email}`)
-      .then(res => res.json())
-      .then(userData => this.setState({
-        uid,
-        user: userData.items[0]
-      }, () => this.addUserToGithubbers()))
-  }
-
-  fetchGithubbers = () => {
-    return base.fetch('githubbers', {
-      context: this,
-      asArray: true
-    }).then(githubbers => this.setState({ githubbers }))
-  }
-
   addUserToGithubbers = () => {
-    const user = this.state.githubbers.find(githubber => githubber.id === this.state.user.id)
-    if (!user) {
-      base.push('githubbers', {
-        data: this.state.user
-      })
+    const user = this.state.githubbers.find(githubber => githubber.id === this.state.uid)
+    const newState = { ...this.state }
+
+    if (user) {
+      newState.user = user
+    } else {
+      newState.githubbers.push(this.state.user)
     }
+
+    this.setState(newState)
+  }
+
+  logout = (ev) => {
+    ev.preventDefault()
+    base.unauth()
+    localStorage.setItem('github-list-uid', null)
+    base.removeBinding(this.ref)
+    this.setState({
+      uid: null,
+      user: {},
+      githubbers: []
+    })
   }
 
   render() {
     let content = this.state.uid
       ? <div>
-          <MyUser user={this.state.user} />
+          <MyUser user={this.state.user} logout={this.logout}/>
           <GithubbersList githubbers={this.state.githubbers} user={this.state.user} />
         </div>
       : <Login authHandler={this.authHandler} />

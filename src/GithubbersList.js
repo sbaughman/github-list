@@ -19,7 +19,7 @@ const Githubber = ({ githubber }) => {
   return (
     <div className="githubber col-sm-3">
       <div className="thumbnail">
-        <img className="img-responsive profile-image" src={githubber.avatar_url} alt="githubber" />
+        <img className="img-responsive" src={githubber.avatar_url} alt="githubber" />
         <div className="caption">
           <h3>{githubber.login}</h3>
           <a href={githubber.url}>Link to {githubber.login}'s github</a>
